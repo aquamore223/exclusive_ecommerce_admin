@@ -1408,6 +1408,59 @@ function renderSlidesList() {
     }
 }
 
+// ==================== MOBILE MENU ====================
+function setupMobileMenu() {
+    const menuToggle = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    if (!menuToggle) return;
+    
+    function closeSidebar() {
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    
+    function openSidebar() {
+        sidebar.classList.add('active');
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    menuToggle.addEventListener('click', () => {
+        if (sidebar.classList.contains('active')) {
+            closeSidebar();
+        } else {
+            openSidebar();
+        }
+    });
+    
+    overlay.addEventListener('click', closeSidebar);
+    
+    // Close sidebar when a nav item is clicked (on mobile)
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            if (window.innerWidth <= 1024) {
+                closeSidebar();
+            }
+        });
+    });
+    
+    // Close sidebar on window resize if screen becomes larger
+    window.addEventListener('resize', () => {
+        if (window.innerWidth > 1024) {
+            closeSidebar();
+        }
+    });
+}
+
+// Call this in your DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    setupMobileMenu();
+    // ... rest of your initialization
+});
+
 console.log("✅ Admin.js loaded with Cloudinary integration");
 console.log("Connected to:", PB_URL);
 console.log("Collection:", COLLECTION_NAME);

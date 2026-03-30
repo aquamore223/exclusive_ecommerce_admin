@@ -261,7 +261,8 @@ function getColorCode(colorName) {
         'red': '#ff0000', 'blue': '#0000ff', 'green': '#00ff00', 'black': '#000000',
         'white': '#ffffff', 'yellow': '#ffff00', 'purple': '#800080', 'pink': '#ff69b4',
         'orange': '#ffa500', 'gray': '#808080', 'grey': '#808080', 'brown': '#8b4513',
-        'navy': '#000080', 'teal': '#008080', 'gold': '#ffd700', 'silver': '#c0c0c0'
+        'navy': '#000080', 'teal': '#008080', 'gold': '#ffd700', 'silver': '#c0c0c0',
+        'home&lifestyle': '#d3d3d3', 'medicine': '#ff6347', 'baby\'s&toys': '#ffb6c1', 'groceries&pets': '#90ee90', 'health&beauty': '#ffb6c1'
     };
     return colorMap[colorName.toLowerCase()] || '#cccccc';
 }
@@ -801,7 +802,12 @@ async function loadCategories() {
             { name: "Gaming", value: "gaming" },
             { name: "Cameras", value: "cameras" },
             { name: "Fashion", value: "fashion" },
-            { name: "Furniture", value: "furniture" }
+            { name: "Furniture", value: "furniture" },
+            { name: "Home&Lifestyle", value: "home-lifestyle" },
+            { name: "Medicine", value: "medicine" },
+            { name: "Baby's&Toys", value: "baby-s-toys" },
+            { name: "Groceries&Pets", value: "groceries-pets" },
+            { name: "Health&Beauty", value: "health-beauty" }
         ];
     }
 }

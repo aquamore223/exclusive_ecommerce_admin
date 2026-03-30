@@ -807,7 +807,8 @@ async function loadCategories() {
             { name: "Medicine", value: "medicine" },
             { name: "Baby's&Toys", value: "baby-s-toys" },
             { name: "Groceries&Pets", value: "groceries-pets" },
-            { name: "Health&Beauty", value: "health-beauty" }
+            { name: "Health&Beauty", value: "health-beauty" },
+             { name: "Electronics", value: "electronics" }
         ];
     }
 }

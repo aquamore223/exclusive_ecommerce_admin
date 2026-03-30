@@ -1279,13 +1279,13 @@ async function loadSlides() {
 
 // Render slides list
 function renderSlidesList() {
-    const slidesList = document.getElementById('slides-list');
+     const slidesList = document.getElementById('slides-list');
     if (!slidesList) return;
     
     if (slides.length === 0) {
         slidesList.innerHTML = `
-            <div class="slides-empty">
-                <i class="fas fa-images" style="font-size: 48px; color: #ccc; margin-bottom: 20px;"></i>
+            <div class="empty-slides">
+                <i class="fas fa-images"></i>
                 <p>No slides yet. Click "Add New Slide" to create your first slide.</p>
             </div>
         `;
@@ -1297,38 +1297,44 @@ function renderSlidesList() {
             <table class="slides-table">
                 <thead>
                     <tr>
-                        <th style="width: 60px;">Order</th>
-                        <th style="width: 80px;">Image</th>
+                        <th>Order</th>
+                        <th>Image</th>
                         <th>Title</th>
                         <th>Category</th>
-                        <th style="width: 80px;">Active</th>
-                        <th style="width: 120px;">Actions</th>
+                        <th>Active</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${slides.map(slide => `
                         <tr data-id="${slide.id}">
-                            <td>
-                                <input type="number" class="slide-order" value="${slide.order}" min="0" step="1" style="width: 60px; padding: 4px;">
+                            <td data-label="Order">
+                                <input type="number" class="slide-order" value="${slide.order}" min="0" step="1" style="width: 70px; padding: 6px;">
                             </td>
-                            <td>
+                            <td data-label="Image">
                                 <img src="${slide.image}" alt="${slide.title}" class="slide-thumb" onerror="this.src='/images/placeholder.jpg'">
                             </td>
-                            <td><strong>${escapeHtml(slide.title)}</strong></td>
-                            <td>${escapeHtml(slide.category) || '—'}</td>
-                            <td>
+                            <td data-label="Title">
+                                <strong>${escapeHtml(slide.title)}</strong>
+                            </td>
+                            <td data-label="Category">
+                                ${escapeHtml(slide.category) || '—'}
+                            </td>
+                            <td data-label="Active">
                                 <label class="switch">
                                     <input type="checkbox" class="slide-active" ${slide.active ? 'checked' : ''}>
                                     <span class="slider round"></span>
                                 </label>
                             </td>
-                            <td class="action-buttons">
-                                <button class="action-btn edit-slide-btn" data-id="${slide.id}">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="action-btn delete-slide-btn" data-id="${slide.id}">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
+                            <td data-label="Actions">
+                                <div class="action-buttons">
+                                    <button class="action-btn edit-slide-btn" data-id="${slide.id}">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="action-btn delete-slide-btn" data-id="${slide.id}">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     `).join('')}

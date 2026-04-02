@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | Exclusive</title>
+    
+    <!-- CSS Links -->
+    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Cloudinary Widget -->
+    <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+</head>
+<body>
+
+    <!-- Mobile Menu Toggle Button -->
+<button class="mobile-menu-toggle" id="mobile-menu-toggle">
+    <i class="fas fa-bars"></i>
+</button>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Exclusive</h2>
+                <span class="admin-badge">Admin Panel</span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-section="products">
+                    <i class="fas fa-box"></i>
+                    <span>Products</span>
+                </a>
+                <a href="#" class="nav-item" data-section="orders">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Orders</span>
+                </a>
+                <a href="#" class="nav-item" data-section="customers">
+                    <i class="fas fa-users"></i>
+                    <span>Customers</span>
+                </a>
+                <a href="#" class="nav-item" data-section="analytics">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="#" class="nav-item" data-section="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="https://e-commerce-exclusives.netlify.app" class="nav-item">
+                    <i class="fas fa-store"></i>
+                    <span>View Store</span>
+                </a>
+                <a href="#" id="logout-btn" class="nav-item" onclick="adminLogout(); return false;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="content-header">
+                <div class="header-left">
+                    <h1>Product Management</h1>
+                    <p>Manage your store inventory and products</p>
+                </div>
+                <div class="header-right">
+                    <div class="admin-profile">
+                        <img src="https://ui-avatars.com/api/?background=db4444&color=fff&name=Admin" alt="Admin">
+                        <div class="profile-info">
+                            <span class="profile-name">Admin User</span>
+                            <span class="profile-role">Administrator</span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="total-products">0</h3>
+                        <p>Total Products</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-tags"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="total-categories">0</h3>
+                        <p>Categories</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="total-value">$0</h3>
+                        <p>Inventory Value</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-fire"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 id="best-sellers">0</h3>
+                        <p>Best Sellers</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Section -->
+            <div id="products-section" class="content-section active">
+                <!-- Action Bar -->
+                <div class="action-bar">
+                    <button class="btn-primary" id="add-product-btn">
+                        <i class="fas fa-plus"></i>
+                        Add New Product
+                    </button>
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="search-products" placeholder="Search products...">
+                    </div>
+                    <div class="filter-group">
+                        <select id="filter-category">
+                            <option value="">All Categories</option>
+                            <option value="Phones">Phones</option>
+                            <option value="Computers">Computers</option>
+                            <option value="SmartWatch">Smart Watches</option>
+                            <option value="Headphones">Headphones</option>
+                            <option value="Gaming">Gaming</option>
+                            <option value="Cameras">Cameras</option>
+                            <option value="Fashion">Fashion</option>
+                            <option value="Furniture">Furniture</option>
+                            <option value="health&beauty">health&beauty</option>
+                            <option value="Sports&Outdoors">Sports & Outdoors</option>
+                            <option value="Home&Lifestyle">Home & Lifestyle</option>
+                            <option value="Medicine">Medicine</option>
+                            <option value="Baby's&Toys">Baby's & Toys</option>
+                            <option value="Groceries&Pets">Groceries & Pets</option>
+                            <option value="Health&Beauty">Health & Beauty</option>
+                            
+                            
+                        </select>
+                        <select id="filter-status">
+                            <option value="">All Status</option>
+                            <option value="flash">Flash Sale</option>
+                            <option value="best">Best Selling</option>
+                            <option value="new">New Arrival</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Product Form Modal -->
+                <div id="product-modal" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modal-title">Add New Product</h3>
+                            <button class="close-modal">&times;</button>
+                        </div>
+                        <form id="product-form">
+                            <input type="hidden" id="product-id">
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Product Name *</label>
+                                    <input type="text" id="product-name" placeholder="Enter product name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Category *</label>
+                                    <select id="product-category" required>
+                                        <option value="">Select Category</option>
+                                        <option value="Phones">Phones</option>
+                                        <option value="Computers">Computers</option>
+                                        <option value="SmartWatch">Smart Watches</option>
+                                        <option value="Headphones">Headphones</option>
+                                        <option value="Gaming">Gaming</option>
+                                        <option value="Cameras">Cameras</option>
+                                        <option value="Fashion">Fashion</option>
+                                        <option value="Furniture">Furniture</option>
+                                        <option value="Sports&Outdoors">Sports & Outdoors</option>
+                                        <option value="Home&Lifestyle">Home & Lifestyle</option>
+                                        <option value="Medicine">Medicine</option>
+                                        <option value="Baby's&Toys">Baby's & Toys</option>
+                                        <option value="Groceries&Pets">Groceries & Pets</option>
+                                        <option value="Health&Beauty">Health & Beauty</option>
+                                        <option value="Electronics">Electronics</option>
+
+
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Price *</label>
+                                    <input type="number" id="product-price" placeholder="0.00" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Old Price</label>
+                                    <input type="number" id="product-oldprice" placeholder="0.00" step="0.01">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Rating (1-5)</label>
+                                    <input type="number" id="product-rating" min="1" max="5" step="0.1" value="4">
+                                </div>
+                                <div class="form-group">
+                                    <label>Reviews Count</label>
+                                    <input type="number" id="product-reviews" value="0">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Stock</label>
+                                    <select id="product-stock">
+                                        <option value="true">In Stock</option>
+                                        <option value="false">Out of Stock</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Tag Type</label>
+                                    <select id="product-tag-type">
+                                        <option value="none">None</option>
+                                        <option value="flash">Flash Sale (-X%)</option>
+                                        <option value="best">Best Selling</option>
+                                        <option value="new">New Arrival</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div id="discount-field" class="form-row" style="display: none;">
+                                <div class="form-group full-width">
+                                    <label>Discount Percentage</label>
+                                    <input type="number" id="product-discount" placeholder="10" step="1" min="1" max="90" value="10">
+                                    <small>Enter discount percentage for flash sale (e.g., 10 for -10%)</small>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group full-width">
+                                <label>Description</label>
+                                <textarea id="product-description" rows="4" placeholder="Product description..."></textarea>
+                            </div>
+                            
+                            <!-- Product Images Upload -->
+                            <div class="form-group full-width">
+                                <label>Product Images (Cloudinary)</label>
+                                <div class="image-upload-area">
+                                    <button type="button" id="upload-images-btn" class="btn-primary">
+                                        <i class="fas fa-cloud-upload-alt"></i> Upload Product Images
+                                    </button>
+                                    <div id="image-preview-container" class="image-preview-grid">
+                                        <div class="image-placeholder">No images uploaded yet</div>
+                                    </div>
+                                    <input type="hidden" id="product-images-json" name="images">
+                                    <small>Upload multiple images. First image will be the main product image</small>
+                                </div>
+                            </div>
+                            
+                            <!-- Colors with Image Upload -->
+                            <div class="form-group full-width">
+                                <label>Colors with Images</label>
+                                <div id="colors-container" class="colors-container">
+                                    <!-- Color rows will be added dynamically -->
+                                </div>
+                                <button type="button" id="add-color-btn" class="btn-secondary" style="margin-top: 10px;">
+                                    <i class="fas fa-plus"></i> Add Color
+                                </button>
+                                <small>Each color will have its own image. When user selects color, product image changes</small>
+                            </div>
+                            
+                            <!-- Sizes - Comma Separated -->
+                            <div class="form-group full-width">
+                                <label>Sizes (comma-separated)</label>
+                                <input type="text" id="product-sizes" placeholder="XS, S, M, L, XL">
+                                <small>Enter sizes separated by commas</small>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="btn-secondary" id="cancel-modal">Cancel</button>
+                                <button type="submit" class="btn-primary">Save Product</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Products Table -->
+                <div class="products-table-container">
+                    <table class="products-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="select-all"></th>
+                                <th>Image</th>
+                                <th>Product Name</th>
+                                <th>Category</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Rating</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-list">
+                            <tr>
+                                <td colspan="9" class="loading-row">
+                                    <div class="spinner"></div>
+                                    Loading products...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination">
+                    <button class="page-btn" id="prev-page" disabled>
+                        <i class="fas fa-chevron-left"></i>
+                        Previous
+                    </button>
+                    <div class="page-numbers" id="page-numbers"></div>
+                    <button class="page-btn" id="next-page">
+                        Next
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Other Sections (Placeholders) -->
+            <div id="orders-section" class="content-section">
+                <div class="coming-soon">
+                    <i class="fas fa-shopping-cart"></i>
+                    <h3>Orders Management</h3>
+                    <p>Coming soon...</p>
+                </div>
+            </div>
+            
+            <div id="customers-section" class="content-section">
+                <div class="coming-soon">
+                    <i class="fas fa-users"></i>
+                    <h3>Customers Management</h3>
+                    <p>Coming soon...</p>
+                </div>
+            </div>
+            
+            <div id="analytics-section" class="content-section">
+                <div class="coming-soon">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Analytics Dashboard</h3>
+                    <p>Coming soon...</p>
+                </div>
+            </div>
+
+            
+            
+            <div id="settings-section" class="content-section">
+                <div class="coming-soon">
+                    <i class="fas fa-cog"></i>
+                    <h3>Settings</h3>
+                               <!-- Add this to your admin.html for slide management -->
+                <div class="form-group full-width">
+                    <h3>Slider Management</h3>
+                    <button type="button" id="add-slide-btn" class="btn-primary">
+                        <i class="fas fa-plus"></i> Add New Slide
+                    </button>
+                    <div id="slides-list" class="slides-list"></div>
+                </div>
+                    <p>Coming soon...</p>
+                </div>
+            </div>
+
+             
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/pocketbase/dist/pocketbase.umd.js"></script>
+    <script src="admin.js"></script>
+    <script src="admin-dashboard.js"></script>
+</body>
+</html>

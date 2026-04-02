@@ -1,3 +1,12 @@
+// Check authentication on dashboard load
+document.addEventListener('DOMContentLoaded', () => {
+    const isAuthenticated = sessionStorage.getItem('adminAuthenticated');
+    if (!isAuthenticated || isAuthenticated !== 'true') {
+        window.location.href = 'index.html';
+    }
+});
+
+
 // admin.js - PocketBase Admin Panel with Cloudinary Integration
 
 // ==================== CONFIGURATION ====================
@@ -1474,6 +1483,51 @@ document.addEventListener('DOMContentLoaded', () => {
     // ... rest of your initialization
 });
 
-console.log("✅ Admin.js loaded with Cloudinary integration");
-console.log("Connected to:", PB_URL);
-console.log("Collection:", COLLECTION_NAME);
+ // ==================== ADMIN LOGOUT FUNCTIONALITY ====================
+
+// Add logout functionality
+function setupAdminLogout() {
+    const logoutBtn = document.getElementById('admin-logout-btn');
+    
+    if (logoutBtn) {
+        // Remove existing listeners to avoid duplicates
+        const newLogoutBtn = logoutBtn.cloneNode(true);
+        logoutBtn.parentNode.replaceChild(newLogoutBtn, logoutBtn);
+        
+        newLogoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log("Logout button clicked - clearing session");
+            
+            // Clear all admin session data
+            sessionStorage.removeItem('adminAuthenticated');
+            sessionStorage.removeItem('adminEmail');
+            sessionStorage.removeItem('adminName');
+            sessionStorage.removeItem('adminId');
+            
+            // Redirect to login page
+            window.location.href = 'index.html';
+        });
+        
+        console.log("✅ Admin logout handler attached");
+    } else {
+        console.warn("⚠️ Admin logout button not found - make sure there's an element with id 'admin-logout-btn'");
+    }
+}
+
+// Call this after DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    // Your existing initialization code...
+    setupAdminLogout(); // Add this line
+});
+
+// Make logout function globally available
+window.adminLogout = function() {
+    console.log("Logout function called");
+    sessionStorage.removeItem('adminAuthenticated');
+    sessionStorage.removeItem('adminEmail');
+    sessionStorage.removeItem('adminName');
+    sessionStorage.removeItem('adminId');
+    window.location.href = 'index.html';
+};

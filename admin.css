@@ -1439,3 +1439,157 @@ body {
         flex-direction: row;
     }
 }
+
+
+
+
+
+
+
+
+
+/* ==================== ADMIN AUTHENTICATION STYLES ==================== */
+.admin-auth-container {
+    width: 100%;
+    max-width: 450px;
+    margin: 0 auto;
+}
+
+.admin-auth-box {
+    background: white;
+    border-radius: 20px;
+    padding: 50px 40px;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+    animation: slideUp 0.5s ease;
+}
+
+.admin-logo {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.admin-logo i {
+    font-size: 50px;
+    color: var(--primary);
+    margin-bottom: 10px;
+}
+
+.admin-logo h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--dark);
+}
+
+.admin-logo p {
+    color: var(--gray);
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--dark);
+}
+
+.input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-group i {
+    position: absolute;
+    left: 15px;
+    color: var(--gray);
+    font-size: 16px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 14px 15px 14px 45px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-size: 15px;
+    transition: all 0.3s ease;
+}
+
+.input-group input:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(219,68,68,0.1);
+}
+
+.login-btn {
+    width: 100%;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.auth-switch-text {
+    text-align: center;
+    margin-top: 20px;
+    color: var(--gray);
+    font-size: 14px;
+}
+
+.auth-switch-link {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.auth-switch-link:hover {
+    text-decoration: underline;
+}
+
+.error-message {
+    color: var(--danger);
+    font-size: 13px;
+    text-align: center;
+    margin-top: 15px;
+    display: none;
+}
+
+.error-message.show {
+    display: block;
+}
+
+.success-message {
+    color: var(--success);
+    font-size: 13px;
+    text-align: center;
+    margin-top: 15px;
+    display: none;
+}
+
+.success-message.show {
+    display: block;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-auth-box {
+        padding: 30px 25px;
+    }
+    
+    .admin-logo h2 {
+        font-size: 24px;
+    }
+}

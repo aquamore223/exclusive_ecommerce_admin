@@ -347,14 +347,69 @@
                 </div>
             </div>
 
-            <!-- Other Sections (Placeholders) -->
-            <div id="orders-section" class="content-section">
-                <div class="coming-soon">
-                    <i class="fas fa-shopping-cart"></i>
-                    <h3>Orders Management</h3>
-                    <p>Coming soon...</p>
-                </div>
-            </div>
+            
+  <!-- Orders Section -->
+<div id="orders-section" class="content-section">
+    <div class="section-header">
+        <h2>Order Management</h2>
+        <p>View and manage all customer orders</p>
+    </div>
+    
+    <!-- Actions Bar -->
+    <div class="orders-actions-bar">
+        <div class="search-bar">
+            <i class="fas fa-search"></i>
+            <input type="text" id="orders-search" placeholder="Search by Order ID, Customer, or Email..." onkeyup="searchOrders()">
+        </div>
+        <div class="actions-buttons">
+            <button class="btn-refresh" onclick="loadOrders()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <button class="btn-primary" onclick="exportOrdersToCSV()">
+                <i class="fas fa-download"></i> Export CSV
+            </button>
+        </div>
+    </div>
+    
+    <!-- Orders Statistics -->
+    <div id="orders-stats" class="stats-grid">
+        <!-- Stats will be populated by JavaScript -->
+    </div>
+    
+    <!-- Order Filters -->
+    <div class="orders-filters">
+        <button class="order-filter-btn active" data-filter="all" onclick="filterOrdersByStatus('all')">All Orders</button>
+        <button class="order-filter-btn" data-filter="pending" onclick="filterOrdersByStatus('pending')">Pending</button>
+        <button class="order-filter-btn" data-filter="processing" onclick="filterOrdersByStatus('processing')">Processing</button>
+        <button class="order-filter-btn" data-filter="shipped" onclick="filterOrdersByStatus('shipped')">Shipped</button>
+        <button class="order-filter-btn" data-filter="delivered" onclick="filterOrdersByStatus('delivered')">Delivered</button>
+        <button class="order-filter-btn" data-filter="cancelled" onclick="filterOrdersByStatus('cancelled')">Cancelled</button>
+    </div>
+    
+    <!-- Orders Table -->
+    <div class="orders-table-container">
+        <table class="orders-table">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th>Payment</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="orders-list">
+                <tr><td colspan="8" class="loading">Loading orders...</td></tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    <div id="orders-pagination" class="pagination-container"></div>
+</div>
             
             <div id="customers-section" class="content-section">
                 <div class="coming-soon">
@@ -396,7 +451,10 @@
 
     <!-- Scripts -->
     <script src="https://unpkg.com/pocketbase/dist/pocketbase.umd.js"></script>
-    <script src="admin.js"></script>
-    <script src="admin-dashboard.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/admin.js"></script>
+    <script src="/js/payment-confirmation.js"></script>
+    <script src="/js/admin-auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </body>
 </html>

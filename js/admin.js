@@ -413,7 +413,15 @@ function renderProductsTable() {
             <td><img src="${product.img}" alt="${product.name}" class="product-thumb" onerror="this.src='/images/placeholder.jpg'"></td>
             <td><strong>${escapeHtml(product.name)}</strong></td>
             <td>${escapeHtml(product.category)}</td>
-            <td><span style="color: var(--primary); font-weight: 600;">$${product.price.toFixed(2)}</span>${product.oldPrice ? `<span style="text-decoration: line-through; color: #999; margin-left: 8px;">$${product.oldPrice.toFixed(2)}</span>` : ''}</td>
+            <td>
+    <span style="color: var(--primary); font-weight: 600;">
+        ${window.formatPrice ? window.formatPrice(product.price) : '$' + product.price.toFixed(2)}
+    </span>
+    ${product.oldPrice ? `<span style="text-decoration: line-through; color: #999; margin-left: 8px;">
+        ${window.formatPrice ? window.formatPrice(product.oldPrice) : '$' + product.oldPrice.toFixed(2)}
+    </span>` : ''}
+    ${product.discount ? `<span class="discount-badge">-${product.discount}%</span>` : ''}
+</td>
             <td><span style="color: ${product.stock ? '#4CAF50' : '#f44336'}">${product.stock ? 'In Stock' : 'Out of Stock'}</span></td>
             <td>${'★'.repeat(Math.floor(product.rating))}${'☆'.repeat(5 - Math.floor(product.rating))} (${product.reviews})</td>
             <td>${getStatusBadge(product.tag)}</td>
@@ -1516,10 +1524,715 @@ function setupAdminLogout() {
     }
 }
 
-// Call this after DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    // Your existing initialization code...
-    setupAdminLogout(); // Add this line
+
+// ==================== ORDERS MANAGEMENT ====================
+
+let allOrders = [];
+let currentOrdersPage = 1;
+let ordersPerPage = 10;
+let filteredOrders = [];
+let currentOrderFilter = 'all';
+
+// Initialize orders management
+async function initOrdersManagement() {
+    console.log("Initializing Orders Management...");
+    await loadOrders();
+    setupOrdersEventListeners();
+}
+
+// Load orders from PocketBase
+async function loadOrders() {
+    const ordersList = document.getElementById('orders-list');
+    if (!ordersList) return;
+    
+    try {
+        if (!pb) {
+            ordersList.innerHTML = '<tr><td colspan="8" class="loading">PocketBase not connected</td></tr>';
+            return;
+        }
+        
+        console.log("Loading orders from PocketBase...");
+        
+        /*// First, verify the collection exists
+        let collectionExists = false;
+        try {
+            const collections = await pb.collections.getList();
+            collectionExists = collections.items.some(c => c.name === 'orders');
+            if (!collectionExists) {
+                ordersList.innerHTML = `<tr><td colspan="8" class="loading">Orders collection not found. Please create it in PocketBase admin.</td></tr>`;
+                return;
+            }
+        } catch(e) {
+            console.warn("Could not verify collections:", e);
+        }
+        */
+        // Fetch all orders
+        const orders = await pb.collection("orders").getFullList({
+            sort: '-created',
+            $autoCancel: false
+        });
+        
+        console.log(`Loaded ${orders.length} orders`);
+        
+        if (orders.length === 0) {
+            ordersList.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 60px;">
+                <i class="fas fa-shopping-cart" style="font-size: 48px; color: #ccc;"></i>
+                <p>No orders found.</p>
+            </td></tr>`;
+            renderOrdersPagination();
+            return;
+        }
+        
+        allOrders = orders.map(order => formatOrder(order)).filter(o => o !== null);
+        filterOrders();
+        updateOrdersStats();
+        
+    } catch (error) {
+        console.error("Error loading orders:", error);
+        if (ordersList) {
+            ordersList.innerHTML = `<tr><td colspan="8" class="loading">Error loading orders: ${error.message}</td></tr>`;
+        }
+    }
+}
+
+// Format order data
+function formatOrder(order) {
+    if (!order || !order.id) return null;
+    
+    let items = [];
+    if (order.items) {
+        if (typeof order.items === 'string') {
+            try {
+                items = JSON.parse(order.items);
+            } catch(e) {
+                console.warn("Error parsing items for order", order.id, e);
+                items = [];
+            }
+        } else if (Array.isArray(order.items)) {
+            items = order.items;
+        }
+    }
+    
+    return {
+        id: order.id,
+        orderId: order.id.slice(-8).toUpperCase(),
+        userId: order.userId || null,
+        customerName: order.customerName || order.customer_name || 'Guest',
+        email: order.email || 'No email',
+        phone: order.phone || 'N/A',
+        address: order.address || 'N/A',
+        items: items,
+        total: order.total || 0,
+        paymentMethod: order.paymentMethod || 'unknown',
+        paymentStatus: order.paymentStatus || 'pending',
+        orderStatus: order.orderStatus || 'pending',
+        created: order.created || new Date().toISOString(),
+        updated: order.updated || new Date().toISOString()
+    };
+}
+
+// Filter orders by status
+function filterOrders() {
+    if (currentOrderFilter === 'all') {
+        filteredOrders = [...allOrders];
+    } else {
+        filteredOrders = allOrders.filter(order => order.orderStatus === currentOrderFilter);
+    }
+    currentOrdersPage = 1;
+    renderOrdersTable();
+}
+// Add this function to export orders
+function exportOrdersToCSV() {
+    const headers = ['Order ID', 'Date', 'Customer', 'Email', 'Total', 'Payment Method', 'Payment Status', 'Order Status'];
+    const rows = allOrders.map(order => [
+        order.orderId,
+        new Date(order.created).toLocaleDateString(),
+        order.customerName,
+        order.email,
+        order.total,
+        order.paymentMethod,
+        order.paymentStatus,
+        order.orderStatus
+    ]);
+    
+    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orders_export_${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// Add search input to orders section
+function searchOrders() {
+    const searchTerm = document.getElementById('orders-search')?.value.toLowerCase() || '';
+    if (!searchTerm) {
+        filterOrders();
+        return;
+    }
+    
+    filteredOrders = allOrders.filter(order => 
+        order.orderId.toLowerCase().includes(searchTerm) ||
+        order.customerName.toLowerCase().includes(searchTerm) ||
+        order.email.toLowerCase().includes(searchTerm)
+    );
+    currentOrdersPage = 1;
+    renderOrdersTable();
+}
+
+// ==================== ORDERS MANAGEMENT - MISSING FUNCTIONS ====================
+
+// Render orders pagination
+function renderOrdersPagination() {
+    const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+    const paginationContainer = document.getElementById('orders-pagination');
+    if (!paginationContainer) return;
+    
+    if (totalPages <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+    
+    let html = `<div class="pagination-wrapper">
+        <button class="pagination-btn" onclick="changeOrdersPage(${currentOrdersPage - 1})" ${currentOrdersPage === 1 ? 'disabled' : ''}>
+            <i class="fas fa-chevron-left"></i> Previous
+        </button>
+        <div class="pagination-numbers">`;
+    
+    // Show page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentOrdersPage - 2 && i <= currentOrdersPage + 2)) {
+            html += `<button class="page-number ${i === currentOrdersPage ? 'active' : ''}" onclick="changeOrdersPage(${i})">${i}</button>`;
+        } else if (i === currentOrdersPage - 3 || i === currentOrdersPage + 3) {
+            html += `<span class="pagination-ellipsis">...</span>`;
+        }
+    }
+    
+    html += `</div><button class="pagination-btn" onclick="changeOrdersPage(${currentOrdersPage + 1})" ${currentOrdersPage === totalPages ? 'disabled' : ''}>
+        Next <i class="fas fa-chevron-right"></i>
+    </button></div>`;
+    
+    paginationContainer.innerHTML = html;
+}
+
+// Change orders page
+window.changeOrdersPage = function(page) {
+    const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+    if (page < 1 || page > totalPages) return;
+    currentOrdersPage = page;
+    renderOrdersTable();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+// Setup orders event listeners
+function setupOrdersEventListeners() {
+    // Filter buttons
+    const filterButtons = document.querySelectorAll('.order-filter-btn');
+    filterButtons.forEach(btn => {
+        // Remove existing listeners to avoid duplicates
+        btn.removeEventListener('click', handleFilterClick);
+        btn.addEventListener('click', handleFilterClick);
+    });
+}
+
+// Handle filter click
+function handleFilterClick(e) {
+    const btn = e.currentTarget;
+    const filter = btn.dataset.filter;
+    filterOrdersByStatus(filter);
+}
+
+// Filter orders by status
+window.filterOrdersByStatus = function(status) {
+    currentOrderFilter = status;
+    filterOrders();
+    
+    // Update active filter button
+    document.querySelectorAll('.order-filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.filter === status) {
+            btn.classList.add('active');
+        }
+    });
+};
+
+// Update orders statistics
+function updateOrdersStats() {
+    const totalOrders = allOrders.length;
+    const pendingOrders = allOrders.filter(o => o.orderStatus === 'pending').length;
+    const processingOrders = allOrders.filter(o => o.orderStatus === 'processing').length;
+    const shippedOrders = allOrders.filter(o => o.orderStatus === 'shipped').length;
+    const deliveredOrders = allOrders.filter(o => o.orderStatus === 'delivered').length;
+    const cancelledOrders = allOrders.filter(o => o.orderStatus === 'cancelled').length;
+    const totalRevenue = allOrders.filter(o => o.orderStatus === 'delivered').reduce((sum, o) => sum + o.total, 0);
+    
+    const statsContainer = document.getElementById('orders-stats');
+    if (statsContainer) {
+        statsContainer.innerHTML = `
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
+                <div class="stat-info">
+                    <h3>${totalOrders}</h3>
+                    <p>Total Orders</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                <div class="stat-info">
+                    <h3>${pendingOrders}</h3>
+                    <p>Pending</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-spinner"></i></div>
+                <div class="stat-info">
+                    <h3>${processingOrders}</h3>
+                    <p>Processing</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-truck"></i></div>
+                <div class="stat-info">
+                    <h3>${shippedOrders}</h3>
+                    <p>Shipped</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <h3>${deliveredOrders}</h3>
+                    <p>Delivered</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-ban"></i></div>
+                <div class="stat-info">
+                    <h3>${cancelledOrders}</h3>
+                    <p>Cancelled</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+                <div class="stat-info">
+                    <h3>${window.formatPrice ? window.formatPrice(totalRevenue) : '$' + totalRevenue.toFixed(2)}</h3>
+                    <p>Revenue</p>
+                </div>
+            </div>
+        `;
+    }
+}
+
+//  renderOrdersTable is defined and calls renderOrdersPagination
+function renderOrdersTable() {
+    const tbody = document.getElementById('orders-list');
+    if (!tbody) return;
+    
+    const start = (currentOrdersPage - 1) * ordersPerPage;
+    const end = start + ordersPerPage;
+    const pageOrders = filteredOrders.slice(start, end);
+    
+    if (pageOrders.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 60px;">
+                    <i class="fas fa-shopping-cart" style="font-size: 48px; color: #ccc;"></i>
+                    <p>No orders found.</p>
+                </td>
+            </tr>
+        `;
+        renderOrdersPagination();
+        return;
+    }
+    
+    tbody.innerHTML = pageOrders.map(order => `
+        <tr data-order-id="${order.id}">
+            <td>#${order.orderId}${order.userId === 'guest' ? ' <span class="guest-badge">Guest</span>' : ''}</td>
+            <td>${new Date(order.created).toLocaleDateString()}</td>
+            <td>
+                <strong>${escapeHtml(order.customerName)}</strong><br>
+                <small style="color: #666;">${order.email}</small>
+             </div>
+             <td class="text-center">${order.items.length} items</td>
+             <td class="text-right"><strong>${window.formatPrice ? window.formatPrice(order.total) : '$' + order.total.toFixed(2)}</strong></td>
+             <td class="text-center">
+                <span class="payment-badge payment-${order.paymentStatus}">
+                    ${order.paymentStatus === 'paid' ? '✅ Paid' : '⏳ Pending'}
+                </span>
+                ${order.paymentMethod === 'cash_on_delivery' && order.paymentStatus === 'pending' ? 
+                    '<br><small class="cod-badge">Cash on Delivery</small>' : ''}
+             </td>
+             <td class="text-center">
+                <select class="order-status-select" data-id="${order.id}" data-status="${order.orderStatus}">
+                    <option value="pending" ${order.orderStatus === 'pending' ? 'selected' : ''}>Pending</option>
+                    <option value="processing" ${order.orderStatus === 'processing' ? 'selected' : ''}>Processing</option>
+                    <option value="shipped" ${order.orderStatus === 'shipped' ? 'selected' : ''}>Shipped</option>
+                    <option value="delivered" ${order.orderStatus === 'delivered' ? 'selected' : ''}>Delivered</option>
+                    <option value="cancelled" ${order.orderStatus === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+                </select>
+             </td>
+             <td class="action-buttons">
+                <button class="action-btn view-order-btn" data-id="${order.id}" title="View Details">
+                    <i class="fas fa-eye"></i>
+                </button>
+                <button class="action-btn pdf-order-btn" onclick="generateOrderPDFFromId('${order.id}')" title="Download PDF" style="background: #dc3545;">
+                    <i class="fas fa-file-pdf"></i>
+                </button>
+                
+                <!-- Status workflow buttons -->
+                ${order.orderStatus === 'pending' ? `
+                    <button class="action-btn process-btn" onclick="markOrderProcessing('${order.id}')" title="Start Processing" style="background: #17a2b8;">
+                        <i class="fas fa-cogs"></i>
+                    </button>
+                ` : ''}
+                
+                ${order.orderStatus === 'processing' ? `
+                    <button class="action-btn ship-btn" onclick="markOrderShipped('${order.id}')" title="Mark as Shipped" style="background: #ffc107; color: #333;">
+                        <i class="fas fa-truck"></i>
+                    </button>
+                ` : ''}
+                
+                ${order.orderStatus === 'shipped' && order.paymentMethod === 'cash_on_delivery' && order.paymentStatus !== 'paid' ? `
+                    <button class="action-btn confirm-payment-btn" onclick="confirmCODOrder('${order.id}')" title="Confirm Cash Payment" style="background: #28a745;">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </button>
+                ` : ''}
+                
+                ${order.orderStatus === 'shipped' && order.paymentMethod !== 'cash_on_delivery' && order.paymentStatus === 'paid' ? `
+                    <button class="action-btn deliver-btn" onclick="markOrderDelivered('${order.id}')" title="Mark as Delivered" style="background: #28a745;">
+                        <i class="fas fa-check-circle"></i>
+                    </button>
+                ` : ''}
+                
+                ${order.orderStatus !== 'delivered' && order.orderStatus !== 'cancelled' ? `
+                    <button class="action-btn cancel-btn" onclick="cancelOrder('${order.id}')" title="Cancel Order" style="background: #dc3545;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                ` : ''}
+             </td>
+         </tr>
+    `).join('');
+    
+    // Add event listeners for status change
+    document.querySelectorAll('.order-status-select').forEach(select => {
+        select.removeEventListener('change', handleStatusChange);
+        select.addEventListener('change', handleStatusChange);
+    });
+    
+    // Add event listeners for view button
+    document.querySelectorAll('.view-order-btn').forEach(btn => {
+        btn.removeEventListener('click', handleViewOrder);
+        btn.addEventListener('click', handleViewOrder);
+    });
+    
+    renderOrdersPagination();
+}
+// Handle status change
+async function handleStatusChange(e) {
+    const select = e.target;
+    const orderId = select.dataset.id;
+    const newStatus = select.value;
+    const oldStatus = select.dataset.status;
+    
+    console.log(`Updating order ${orderId} from ${oldStatus} to ${newStatus}`);
+    
+    select.disabled = true;
+    select.style.backgroundColor = '#fff3cd';
+    
+    try {
+        const updatedOrder = await pb.collection("orders").update(orderId, {
+            orderStatus: newStatus,
+            updated: new Date().toISOString()
+        }, {
+            $autoCancel: false
+        });
+        
+        console.log("Order updated successfully:", updatedOrder);
+        showNotification(`Order status updated to ${newStatus}`, 'success');
+        select.dataset.status = newStatus;
+        
+        // Reload orders
+        await loadOrders();
+        
+    } catch (error) {
+        console.error("Error updating order status:", error);
+        select.value = oldStatus;
+        showNotification('Error updating order status: ' + error.message, 'error');
+    } finally {
+        select.disabled = false;
+        select.style.backgroundColor = '';
+    }
+}
+
+// Handle view order
+function handleViewOrder(e) {
+    const btn = e.currentTarget;
+    const orderId = btn.dataset.id;
+    const order = allOrders.find(o => o.id === orderId);
+    if (order) {
+        showOrderDetailsModal(order);
+    } else {
+        showNotification('Order details not found', 'error');
+    }
+}
+
+// Show order details modal
+function showOrderDetailsModal(order) {
+    let modal = document.getElementById('order-details-modal');
+    
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'order-details-modal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h3>Order Details</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body" id="order-details-body"></div>
+                <div class="modal-footer">
+                    <button class="btn-secondary close-modal-btn">Close</button>
+                    <button class="btn-primary print-order-btn"><i class="fas fa-print"></i> Print</button>
+                    <button class="btn-primary pdf-order-btn" style="background: #dc3545;"><i class="fas fa-file-pdf"></i> Download PDF</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        modal.querySelectorAll('.close-modal, .close-modal-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+        });
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    }
+    
+    const body = document.getElementById('order-details-body');
+    if (body) {
+        body.innerHTML = `
+            <div class="order-details-grid">
+                <div class="order-info-section">
+                    <h4>Order Information</h4>
+                    <div class="info-row"><strong>Order #:</strong> ${order.orderId}</div>
+                    <div class="info-row"><strong>Date:</strong> ${new Date(order.created).toLocaleString()}</div>
+                    <div class="info-row"><strong>Status:</strong> <span class="status-badge status-${order.orderStatus}">${order.orderStatus}</span></div>
+                    <div class="info-row"><strong>Payment:</strong> ${order.paymentMethod?.replace('_', ' ').toUpperCase() || 'N/A'}</div>
+                    <div class="info-row"><strong>Payment Status:</strong> <span class="payment-badge payment-${order.paymentStatus}">${order.paymentStatus}</span></div>
+                </div>
+                
+                <div class="order-info-section">
+                    <h4>Customer Information</h4>
+                    <div class="info-row"><strong>Name:</strong> ${escapeHtml(order.customerName)}</div>
+                    <div class="info-row"><strong>Email:</strong> ${order.email}</div>
+                    <div class="info-row"><strong>Phone:</strong> ${order.phone || 'N/A'}</div>
+                    <div class="info-row"><strong>Address:</strong> ${order.address || 'N/A'}</div>
+                </div>
+            </div>
+            
+            <div class="order-items-section">
+                <h4>Order Items</h4>
+                <table class="order-items-table">
+                    <thead>
+                        <tr><th>Product</th><th>Quantity</th><th>Unit Price</th><th>Subtotal</th></tr>
+                    </thead>
+                    <tbody>
+                        ${order.items.map(item => `
+                            <tr>
+                                <td>
+                                    <div class="order-item-product">
+                                        <img src="${item.img || '/images/placeholder.jpg'}" class="order-item-img" onerror="this.src='/images/placeholder.jpg'">
+                                        <div><strong>${escapeHtml(item.name)}</strong>${item.color ? `<br><small>Color: ${item.color}</small>` : ''}${item.size ? `<br><small>Size: ${item.size}</small>` : ''}</div>
+                                    </div>
+                                 </div>
+                                 <td class="text-center">${item.quantity || item.qty}</td>
+                                 <td class="text-right">${window.formatPrice ? window.formatPrice(item.price) : '$' + item.price.toFixed(2)}</td>
+                                 <td class="text-right">${window.formatPrice ? window.formatPrice((item.quantity || item.qty) * item.price) : '$' + ((item.quantity || item.qty) * item.price).toFixed(2)}</td>
+                             </tr>
+                        `).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td colspan="3" style="text-align: right;"><strong>Total:</strong></td>
+                            <td class="text-right"><strong>${window.formatPrice ? window.formatPrice(order.total) : '$' + order.total.toFixed(2)}</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        `;
+    }
+    
+    // Print button handler
+    const printBtn = modal.querySelector('.print-order-btn');
+    if (printBtn) {
+        printBtn.onclick = () => {
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Order #${order.orderId}</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        .order-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+                        .order-info-section { border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
+                        .order-items-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        .order-items-table th, .order-items-table td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
+                        .order-item-img { width: 50px; height: 50px; object-fit: cover; }
+                        .total-row { background: #f5f5f5; font-weight: bold; }
+                        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+                        .status-pending { background: #fff3cd; color: #856404; }
+                        .status-processing { background: #cce5ff; color: #004085; }
+                        .status-shipped { background: #d1ecf1; color: #0c5460; }
+                        .status-delivered { background: #d4edda; color: #155724; }
+                        .status-cancelled { background: #f8d7da; color: #721c24; }
+                        .payment-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+                        .payment-paid { background: #d4edda; color: #155724; }
+                        .payment-pending { background: #fff3cd; color: #856404; }
+                        .text-center { text-align: center; }
+                        .text-right { text-align: right; }
+                    </style>
+                </head>
+                <body>
+                    ${body.innerHTML}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        };
+    }
+    
+    // PDF button handler
+    const pdfBtn = modal.querySelector('.pdf-order-btn');
+    if (pdfBtn) {
+        pdfBtn.onclick = () => {
+            generateOrderPDF(order);
+        };
+    }
+    
+    modal.classList.add('active');
+}
+
+// Simple print-based PDF generation
+function generateOrderPDF(order) {
+    // Format items for PDF
+    let items = order.items;
+    if (typeof items === 'string') {
+        try { items = JSON.parse(items); } catch(e) { items = []; }
+    }
+    
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Order #${order.orderId} Receipt</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 40px; }
+                .header { text-align: center; border-bottom: 2px solid #db4444; padding-bottom: 20px; margin-bottom: 30px; }
+                .header h1 { color: #db4444; }
+                .order-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; }
+                .info-box { border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
+                .info-box h3 { margin-top: 0; color: #db4444; }
+                .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                .items-table th, .items-table td { padding: 10px; border-bottom: 1px solid #ddd; text-align: left; }
+                .items-table th { background: #f5f5f5; }
+                .text-right { text-align: right; }
+                .text-center { text-align: center; }
+                .total-row { background: #f5f5f5; font-weight: bold; }
+                .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; }
+                @media print {
+                    body { margin: 0; padding: 20px; }
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>EXCLUSIVE STORE</h1>
+                <p>Order Receipt</p>
+            </div>
+            
+            <div class="order-grid">
+                <div class="info-box">
+                    <h3>Order Details</h3>
+                    <p><strong>Order #:</strong> ${order.orderId}</p>
+                    <p><strong>Date:</strong> ${new Date(order.created).toLocaleString()}</p>
+                    <p><strong>Status:</strong> ${order.orderStatus.toUpperCase()}</p>
+                    <p><strong>Payment:</strong> ${order.paymentMethod?.replace('_', ' ').toUpperCase() || 'N/A'}</p>
+                </div>
+                <div class="info-box">
+                    <h3>Delivery Information</h3>
+                    <p><strong>Name:</strong> ${escapeHtml(order.customerName)}</p>
+                    <p><strong>Email:</strong> ${order.email}</p>
+                    <p><strong>Phone:</strong> ${order.phone || 'N/A'}</p>
+                    <p><strong>Address:</strong> ${order.address || 'N/A'}</p>
+                </div>
+            </div>
+            
+            <table class="items-table">
+                <thead><tr><th>Product</th><th class="text-center">Qty</th><th class="text-right">Price</th><th class="text-right">Subtotal</th></tr></thead>
+                <tbody>
+                    ${items.map(item => `
+                        <tr>
+                            <td>${escapeHtml(item.name)}${item.color ? `<br><small>Color: ${item.color}</small>` : ''}${item.size ? `<br><small>Size: ${item.size}</small>` : ''}</td>
+                            <td class="text-center">${item.quantity || item.qty}</td>
+                            <td class="text-right">${window.formatPrice ? window.formatPrice(item.price) : '$' + item.price}</td>
+                            <td class="text-right">${window.formatPrice ? window.formatPrice((item.quantity || item.qty) * item.price) : '$' + ((item.quantity || item.qty) * item.price)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+                <tfoot><tr class="total-row"><td colspan="3" class="text-right"><strong>Total:</strong></td><td class="text-right"><strong>${window.formatPrice ? window.formatPrice(order.total) : '$' + order.total}</strong></td></tr></tfoot>
+            </table>
+            
+            <div class="footer">
+                <p>Thank you for shopping with Exclusive Store!</p>
+                <p>This is a computer-generated receipt.</p>
+            </div>
+            
+            <div class="no-print" style="text-align: center; margin-top: 20px;">
+                <button onclick="window.print()" style="padding: 10px 20px; background: #db4444; color: white; border: none; border-radius: 5px; cursor: pointer;">Save as PDF</button>
+                <button onclick="window.close()" style="padding: 10px 20px; margin-left: 10px; background: #666; color: white; border: none; border-radius: 5px; cursor: pointer;">Close</button>
+            </div>
+            <script>
+                // Auto-trigger print dialog
+                window.onload = function() {
+                    setTimeout(() => {
+                        window.print();
+                    }, 500);
+                };
+            </script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
+
+
+
+// At the end of your admin.js, update the DOMContentLoaded
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log("Admin page loaded");
+    await checkConnection();
+    await loadProducts();
+    setupEventListeners();
+    updateStats();
+    setupNavigation();
+    setupTagTypeListener();
+    setupCloudinaryUpload();
+    setupColorsManager();
+    setupCancelButton();
+    setupSliderManagement(); // Initialize slider management
+    setupMobileMenu();
+    setupAdminLogout();
+    await initOrdersManagement(); // Add this line to initialize orders
 });
 
 // Make logout function globally available

@@ -1,15 +1,22 @@
-// admin-auth.js - Admin Authentication
+// admin-auth.js - Admin Authentication (for index.html login page)
 
 // ==================== CONFIGURATION ====================
 const PB_URL = "https://itrain.services.hodessy.com";
 const ADMIN_COLLECTION = "admin_users";
 const ADMIN_SECRET_KEY = "ExclusiveAdmin2024!";
 
-// Initialize PocketBase
-const pb = new PocketBase(PB_URL);
-window.pb = pb;
+// Initialize PocketBase globally for login page
+let pb = null;
 
-// Check if already logged in
+try {
+    pb = new PocketBase(PB_URL);
+    window.pb = pb; // Make it globally available
+    console.log("✅ PocketBase initialized for login");
+} catch (error) {
+    console.error("❌ Failed to initialize PocketBase:", error);
+}
+
+// Wait for DOM to load
 document.addEventListener('DOMContentLoaded', () => {
     console.log("Admin auth page loaded");
     checkExistingSession();
@@ -30,46 +37,28 @@ function setupFormToggles() {
     const loginForm = document.getElementById('login-form');
     const signupForm = document.getElementById('signup-form');
     
-    console.log("Form elements found:", {
-        showSignup: !!showSignup,
-        showLogin: !!showLogin,
-        loginForm: !!loginForm,
-        signupForm: !!signupForm
-    });
-    
     if (showSignup) {
-        // Remove existing listeners to avoid duplicates
         const newShowSignup = showSignup.cloneNode(true);
         showSignup.parentNode.replaceChild(newShowSignup, showSignup);
-        
         newShowSignup.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log("Show signup clicked");
             if (loginForm) loginForm.style.display = 'none';
             if (signupForm) signupForm.style.display = 'block';
         });
-    } else {
-        console.warn("Element with id 'show-signup' not found");
     }
     
     if (showLogin) {
-        // Remove existing listeners to avoid duplicates
         const newShowLogin = showLogin.cloneNode(true);
         showLogin.parentNode.replaceChild(newShowLogin, showLogin);
-        
         newShowLogin.addEventListener('click', (e) => {
             e.preventDefault();
-            console.log("Show login clicked");
             if (signupForm) signupForm.style.display = 'none';
             if (loginForm) loginForm.style.display = 'block';
         });
-    } else {
-        console.warn("Element with id 'show-login' not found");
     }
 }
 
 function setupEventListeners() {
-    // Login form submission
     const loginFormElement = document.getElementById('admin-login-form');
     if (loginFormElement) {
         loginFormElement.addEventListener('submit', async (e) => {
@@ -78,7 +67,6 @@ function setupEventListeners() {
         });
     }
     
-    // Signup form submission
     const signupFormElement = document.getElementById('admin-signup-form');
     if (signupFormElement) {
         signupFormElement.addEventListener('submit', async (e) => {
@@ -99,10 +87,15 @@ async function handleLogin() {
         return;
     }
     
+    if (!pb) {
+        showError(errorDiv, 'System initializing. Please refresh and try again.');
+        return;
+    }
+    
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
     submitBtn.disabled = true;
-    errorDiv.classList.remove('show');
+    if (errorDiv) errorDiv.classList.remove('show');
     
     try {
         const authData = await pb.collection(ADMIN_COLLECTION).authWithPassword(email, password);
@@ -117,7 +110,11 @@ async function handleLogin() {
         }
     } catch (error) {
         console.error('Login error:', error);
-        showError(errorDiv, 'Invalid email or password');
+        let errorMessage = 'Invalid email or password';
+        if (error.message && error.message.includes('Failed to fetch')) {
+            errorMessage = 'Cannot connect to server. Please check your connection.';
+        }
+        showError(errorDiv, errorMessage);
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
     }
@@ -133,19 +130,16 @@ async function handleSignup() {
     const successDiv = document.getElementById('signup-success');
     const submitBtn = document.querySelector('#admin-signup-form button');
     
-    // Validate inputs
     if (!name || !email || !password || !confirmPassword || !secretKey) {
         showError(errorDiv, 'Please fill in all fields');
         return;
     }
     
-    // Validate secret key
     if (secretKey !== ADMIN_SECRET_KEY) {
         showError(errorDiv, 'Invalid admin secret key');
         return;
     }
     
-    // Validate password match
     if (password !== confirmPassword) {
         showError(errorDiv, 'Passwords do not match');
         return;
@@ -156,6 +150,11 @@ async function handleSignup() {
         return;
     }
     
+    if (!pb) {
+        showError(errorDiv, 'System initializing. Please refresh and try again.');
+        return;
+    }
+    
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating account...';
     submitBtn.disabled = true;
@@ -163,7 +162,6 @@ async function handleSignup() {
     successDiv.classList.remove('show');
     
     try {
-        // Include all required fields including role and isAdmin
         const userData = {
             name: name,
             email: email,
@@ -174,11 +172,7 @@ async function handleSignup() {
             isAdmin: true
         };
         
-        console.log("Creating admin user:", { name, email });
-        
-        const user = await pb.collection(ADMIN_COLLECTION).create(userData);
-        
-        console.log("Admin user created:", user);
+        await pb.collection(ADMIN_COLLECTION).create(userData);
         
         successDiv.textContent = 'Account created successfully! Redirecting to login...';
         successDiv.classList.add('show');
@@ -191,29 +185,23 @@ async function handleSignup() {
             successDiv.classList.remove('show');
         }, 2000);
         
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-        
     } catch (error) {
         console.error('Signup error:', error);
-        
         let errorMessage = 'Signup failed. ';
-        
         if (error.message && error.message.includes('unique')) {
             errorMessage = 'Email already exists. Please use a different email.';
-        } else if (error.data && error.data.message) {
-            errorMessage = error.data.message;
-        } else if (error.message) {
-            errorMessage = error.message;
+        } else {
+            errorMessage += error.message;
         }
-        
         showError(errorDiv, errorMessage);
+    } finally {
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
     }
 }
 
 function showError(element, message) {
+    if (!element) return;
     element.textContent = message;
     element.classList.add('show');
     setTimeout(() => {
@@ -221,25 +209,12 @@ function showError(element, message) {
     }, 3000);
 }
 
-// Helper functions for dashboard
-window.isAdminAuthenticated = () => {
-    return sessionStorage.getItem('adminAuthenticated') === 'true';
-};
-
-window.getAdminInfo = () => {
-    return {
-        email: sessionStorage.getItem('adminEmail'),
-        name: sessionStorage.getItem('adminName'),
-        id: sessionStorage.getItem('adminId'),
-        isAuthenticated: sessionStorage.getItem('adminAuthenticated') === 'true'
-    };
-};
-
 window.adminLogout = () => {
     sessionStorage.removeItem('adminAuthenticated');
     sessionStorage.removeItem('adminEmail');
     sessionStorage.removeItem('adminName');
     sessionStorage.removeItem('adminId');
+    if (pb && pb.authStore) pb.authStore.clear();
     window.location.href = 'index.html';
 };
 

@@ -1950,3 +1950,172 @@ body {
 .text-right {
     text-align: right;
 }
+
+
+/* ==================== ORDERS TABLE RESPONSIVE ==================== */
+
+/* Mobile styles for orders table */
+@media (max-width: 768px) {
+    /* Orders Table Container */
+    .orders-table-container {
+        overflow-x: visible;
+        border-radius: 12px;
+    }
+    
+    /* Convert orders table to card layout on mobile */
+    .orders-table {
+        min-width: 100%;
+        display: block;
+    }
+    
+    .orders-table thead {
+        display: none;
+    }
+    
+    .orders-table tbody {
+        display: block;
+    }
+    
+    .orders-table tr {
+        display: block;
+        margin-bottom: 20px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 15px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .orders-table td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #f0f0f0;
+        text-align: right;
+        gap: 10px;
+    }
+    
+    .orders-table td:last-child {
+        border-bottom: none;
+    }
+    
+    .orders-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        text-align: left;
+        color: var(--dark);
+        font-size: 13px;
+        min-width: 110px;
+        flex-shrink: 0;
+    }
+    
+    /* Action buttons on mobile */
+    .orders-table td .action-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+    
+    .orders-table td .action-btn {
+        padding: 6px 12px;
+        font-size: 11px;
+    }
+    
+    /* Status select on mobile */
+    .orders-table td .order-status-select {
+        width: auto;
+        min-width: 100px;
+        font-size: 12px;
+        padding: 5px 8px;
+    }
+    
+    /* Order ID on mobile */
+    .orders-table td:first-child {
+        font-weight: 600;
+        font-size: 14px;
+    }
+    
+    /* Customer info on mobile */
+    .orders-table td:nth-child(3) strong {
+        font-size: 13px;
+    }
+    
+    .orders-table td:nth-child(3) small {
+        font-size: 11px;
+    }
+}
+
+/* Small mobile (480px and below) */
+@media (max-width: 480px) {
+    .orders-table td::before {
+        min-width: 85px;
+        font-size: 12px;
+    }
+    
+    .orders-table td {
+        font-size: 12px;
+        padding: 8px 0;
+    }
+    
+    .orders-table td .action-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .orders-table td .action-btn {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+    
+    .orders-table td .order-status-select {
+        width: 100%;
+        font-size: 12px;
+    }
+}
+
+/* Landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+    .orders-table-container {
+        overflow-x: auto;
+    }
+    
+    .orders-table {
+        min-width: 700px;
+    }
+    
+    .orders-table thead {
+        display: table-header-group;
+    }
+    
+    .orders-table tbody {
+        display: table-row-group;
+    }
+    
+    .orders-table tr {
+        display: table-row;
+        border: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .orders-table td {
+        display: table-cell;
+        padding: 10px;
+        border-bottom: 1px solid var(--border);
+    }
+    
+    .orders-table td::before {
+        display: none;
+    }
+    
+    .orders-table td .action-buttons {
+        flex-direction: row;
+    }
+    
+    .orders-table td .action-btn {
+        width: auto;
+    }
+}

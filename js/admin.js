@@ -1,10 +1,3 @@
-// Check authentication on dashboard load
-document.addEventListener('DOMContentLoaded', () => {
-    const isAuthenticated = sessionStorage.getItem('adminAuthenticated');
-    if (!isAuthenticated || isAuthenticated !== 'true') {
-        window.location.href = 'index.html';
-    }
-});
 
 
 // admin.js - PocketBase Admin Panel with Cloudinary Integration
@@ -33,21 +26,6 @@ try {
 } catch (error) {
     console.error("❌ Failed to initialize PocketBase:", error);
 }
-
-// Wait for DOM to load
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log("Admin page loaded");
-    await checkConnection();
-    await loadProducts();
-    setupEventListeners();
-    updateStats();
-    setupNavigation();
-    setupTagTypeListener();
-    setupCloudinaryUpload();
-    setupColorsManager();
-    setupCancelButton();
-    setupSliderManagement(); // Initialize slider management
-});
 
 // ==================== CLOUDINARY UPLOAD ====================
 function setupCloudinaryUpload() {
@@ -1485,12 +1463,6 @@ function setupMobileMenu() {
     });
 }
 
-// Call this in your DOMContentLoaded
-document.addEventListener('DOMContentLoaded', () => {
-    setupMobileMenu();
-    // ... rest of your initialization
-});
-
  // ==================== ADMIN LOGOUT FUNCTIONALITY ====================
 
 // Add logout functionality
@@ -2215,10 +2187,14 @@ function generateOrderPDF(order) {
 }
 
 
-
-
-// At the end of your admin.js, update the DOMContentLoaded
 document.addEventListener('DOMContentLoaded', async () => {
+    // Check authentication first
+    const isAuthenticated = sessionStorage.getItem('adminAuthenticated');
+    if (!isAuthenticated || isAuthenticated !== 'true') {
+        window.location.href = 'index.html';
+        return;
+    }
+    
     console.log("Admin page loaded");
     await checkConnection();
     await loadProducts();
@@ -2229,11 +2205,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupCloudinaryUpload();
     setupColorsManager();
     setupCancelButton();
-    setupSliderManagement(); // Initialize slider management
+    setupSliderManagement();
     setupMobileMenu();
     setupAdminLogout();
-    await initOrdersManagement(); // Add this line to initialize orders
+    await initOrdersManagement();
 });
+
+
+
+
+ 
 
 // Make logout function globally available
 window.adminLogout = function() {

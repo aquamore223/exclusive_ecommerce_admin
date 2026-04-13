@@ -1865,7 +1865,7 @@ function renderOrdersTable() {
                     </button>
                 ` : ''}
                 
-                ${order.orderStatus === 'shipped' && order.paymentMethod === 'cash_on_delivery' && order.paymentStatus !== 'paid' ? `
+                ${order.orderStatus === 'delivered' && order.paymentMethod === 'cash_on_delivery' && order.paymentStatus !== 'paid' ? `
                     <button class="action-btn confirm-payment-btn" onclick="confirmCODOrder('${order.id}')" title="Confirm Cash Payment" style="background: #28a745;">
                         <i class="fas fa-money-bill-wave"></i>
                     </button>

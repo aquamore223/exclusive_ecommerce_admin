@@ -2,23 +2,23 @@
 
 // ==================== PAYMENT & DELIVERY MANAGEMENT ====================
 
-// Confirm payment for COD order
+// Confirm payment for COD order (called after delivery)
 async function confirmCODOrder(orderId) {
     if (!confirm('Confirm that cash payment has been received for this order?')) return;
     
     try {
         const updatedOrder = await pb.collection("orders").update(orderId, {
             paymentStatus: 'paid',
-            orderStatus: 'delivered',
             paymentConfirmedAt: new Date().toISOString(),
             paymentConfirmedBy: pb.authStore.model?.email || 'admin',
             updated: new Date().toISOString()
+            // Do NOT change orderStatus - it should already be 'delivered'
         }, {
             $autoCancel: false
         });
         
         console.log("Payment confirmed:", updatedOrder);
-        showNotification('✅ Payment confirmed! Order marked as delivered.', 'success');
+        showNotification('✅ Cash payment confirmed!', 'success');
         
         // Reload orders to update the display
         if (typeof loadOrders === 'function') {
@@ -68,11 +68,12 @@ async function markOrderDelivered(orderId) {
             orderStatus: 'delivered',
             deliveredAt: new Date().toISOString(),
             updated: new Date().toISOString()
+            // Do NOT change paymentStatus - keep as 'pending' for COD
         }, {
             $autoCancel: false
         });
         
-        showNotification('Order marked as delivered!', 'success');
+        showNotification('📦 Order marked as delivered!', 'success');
         if (typeof loadOrders === 'function') await loadOrders();
         
     } catch (error) {

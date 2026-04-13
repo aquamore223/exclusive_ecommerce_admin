@@ -1512,6 +1512,7 @@ async function initOrdersManagement() {
     setupOrdersEventListeners();
 }
 
+
 // Load orders from PocketBase
 async function loadOrders() {
     const ordersList = document.getElementById('orders-list');
@@ -1519,25 +1520,12 @@ async function loadOrders() {
     
     try {
         if (!pb) {
-            ordersList.innerHTML = '<tr><td colspan="8" class="loading">PocketBase not connected</td></tr>';
+            ordersList.innerHTML = '<td><td colspan="8" class="loading">PocketBase not connected</td></tr>';
             return;
         }
         
         console.log("Loading orders from PocketBase...");
         
-        /*// First, verify the collection exists
-        let collectionExists = false;
-        try {
-            const collections = await pb.collections.getList();
-            collectionExists = collections.items.some(c => c.name === 'orders');
-            if (!collectionExists) {
-                ordersList.innerHTML = `<tr><td colspan="8" class="loading">Orders collection not found. Please create it in PocketBase admin.</td></tr>`;
-                return;
-            }
-        } catch(e) {
-            console.warn("Could not verify collections:", e);
-        }
-        */
         // Fetch all orders
         const orders = await pb.collection("orders").getFullList({
             sort: '-created',
@@ -1556,6 +1544,32 @@ async function loadOrders() {
         }
         
         allOrders = orders.map(order => formatOrder(order)).filter(o => o !== null);
+        
+        // 🔥 SORT ORDERS: Pending/Processing/Shipped first, then Delivered/Paid, then Cancelled
+        allOrders.sort((a, b) => {
+            // Define priority order (lower number = higher priority)
+            const getPriority = (order) => {
+                // Cancelled orders go to the bottom
+                if (order.orderStatus === 'cancelled') return 4;
+                // Delivered and paid orders go after active orders
+                if (order.orderStatus === 'delivered' && order.paymentStatus === 'paid') return 3;
+                // Delivered but not paid (COD pending payment)
+                if (order.orderStatus === 'delivered' && order.paymentStatus !== 'paid') return 2;
+                // Active orders (pending, processing, shipped) - highest priority
+                return 1;
+            };
+            
+            const priorityA = getPriority(a);
+            const priorityB = getPriority(b);
+            
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
+            }
+            
+            // If same priority, sort by created date (newest first)
+            return new Date(b.created) - new Date(a.created);
+        });
+        
         filterOrders();
         updateOrdersStats();
         
@@ -1871,7 +1885,7 @@ function renderOrdersTable() {
                     </button>
                 ` : ''}
                 
-                ${order.orderStatus === 'shipped' && order.paymentMethod !== 'cash_on_delivery' && order.paymentStatus === 'paid' ? `
+                ${order.orderStatus === 'shipped' && order.paymentMethod !== 'cash_on_delivery' && order.paymentStatus !== 'paid' ? `
                     <button class="action-btn deliver-btn" onclick="markOrderDelivered('${order.id}')" title="Mark as Delivered" style="background: #28a745;">
                         <i class="fas fa-check-circle"></i>
                     </button>
